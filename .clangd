@@ -1,0 +1,15 @@
+CompileFlags:
+  CompilationDatabase: build/Debug
+  Compiler: arm-none-eabi-gcc
+  Remove:
+    - -fstack-usage
+    - -MMD
+    - -MP
+
+Index:
+  Background: Build
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+
