@@ -40,6 +40,8 @@ namespace ALG::PID
             void setIntegralSeparation(float threshold);
             float getOutput();
             float getError();
+            float getKp() const;
+            float getKd() const;
     };
 
     /**
@@ -137,6 +139,16 @@ namespace ALG::PID
     inline float PID::getError()
     {
         return error_;
+    }
+
+    inline float PID::getKp() const
+    {
+        return k_[0];
+    }
+
+    inline float PID::getKd() const
+    {
+        return k_[2];
     }
 
 } // namespace ALG::PID

@@ -2,6 +2,7 @@
 #define Dm_Motor_hpp
 
 #pragma once
+#include <string.h>
 #include "MotorBase.hpp"
 #include "can_hal.hpp"
 
@@ -118,9 +119,15 @@ namespace BSP::Motor::DM
          */
         void Parse(const HAL::CAN::Frame &frame) override
         {
+            if (frame.dlc != 8 || frame.is_remote_frame || frame.is_extended_id)
+                return;
             for (uint8_t i = 0; i < N; ++i)
             {
-                if (frame.id == init_address + recv_idxs_[i])
+                const HAL::CAN::ID_t expected_id =
+                    static_cast<HAL::CAN::ID_t>(init_address) +
+                    static_cast<HAL::CAN::ID_t>(recv_idxs_[i]);
+
+                if (frame.id == expected_id)
                 {
                     const uint8_t* pData = frame.data;
                         
@@ -131,11 +138,37 @@ namespace BSP::Motor::DM
                     feedback_[i].torque = ((pData[4] & 0xF) << 8) | pData[5];
                     feedback_[i].T_Mos = pData[6];
                     feedback_[i].T_Rotor = pData[7];
+                    feedback_received_[i] = true;
 
                     Configure(i);
                     this->updateTimestamp(i + 1);                       
+                    feedback_tick_[i] = HAL_GetTick();
+                    feedback_error_[i] = feedback_[i].err;
+                    ++feedback_sequence_[i];
                 }
             }
+        }
+
+        // 获取 DM 电机反馈中的错误/状态码。
+        uint8_t getError(uint8_t id) const
+        {
+            return (id > 0 && id <= N) ? feedback_error_[id - 1] : 0xFF;
+        }
+
+        bool hasFeedback(uint8_t id) const
+        {
+            return id > 0 && id <= N && feedback_received_[id - 1];
+        }
+
+        uint32_t getFeedbackSequence(uint8_t id) const
+        {
+            return id > 0 && id <= N ? feedback_sequence_[id - 1] : 0;
+        }
+
+        bool isFeedbackFresh(uint8_t id, uint32_t now, uint32_t timeout_ms) const
+        {
+            return getFeedbackSequence(id) != 0 &&
+                   static_cast<uint32_t>(now - feedback_tick_[id - 1]) < timeout_ms;
         }
 
         /**
@@ -315,6 +348,10 @@ namespace BSP::Motor::DM
         uint8_t recv_idxs_[N];
         uint32_t send_idxs_[N];
         DMMotorfeedback feedback_[N];
+        bool feedback_received_[N] = {};
+        volatile uint32_t feedback_sequence_[N] = {};
+        volatile uint32_t feedback_tick_[N] = {};
+        volatile uint8_t feedback_error_[N] = {};
         Parameters params_;
     };
 
@@ -327,7 +364,7 @@ namespace BSP::Motor::DM
     public:
         J4310(uint16_t Init_id, const uint8_t (&ids)[N], const uint32_t (&send_idxs)[N])
             : DMMotorBase<N>(Init_id, ids, send_idxs, 
-                            Parameters(-12.56f, 12.56f, -45.0f, 45.0f, -18.0f, 18.0f, 0.0f, 500.0f, 0.0f, 5.0f))
+                            Parameters(-12.56f, 12.56f, -30.0f, 30.0f, -10.0f, 10.0f, 0.0f, 500.0f, 0.0f, 5.0f))
         {
         }
     };

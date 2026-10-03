@@ -1,8 +1,13 @@
 #include "MotorTask.hpp"
+#include "../Module/Motor/DmMotorController.hpp"
 #include "RobotContext.hpp"
 #include "can_device.hpp"
 
-float m3508_current[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+namespace
+{
+    DmMotorController dm_motor_controller(MotorJ4310);
+}
+
 /*
  * 注册 CAN 接收回调。
  */
@@ -14,16 +19,17 @@ void MotorInit(void)
     can1.register_rx_callback([](const HAL::CAN::Frame& frame)
     {
         Motor3508.Parse(frame);
+        Motor3508_5.Parse(frame);
     });
 
     can2.register_rx_callback([](const HAL::CAN::Frame& frame)
     {
         MotorJ4310.Parse(frame);
-    });
+    }); 
 }
 
 /*
- * 下发底盘电机和超电 CAN 指令。
+ * 下发底盘电机和 DM 电机 CAN 指令。
  */
 static void motor_control_logic(uint32_t tick)
 {
@@ -31,11 +37,14 @@ static void motor_control_logic(uint32_t tick)
 
     for (int i = 0; i < 4; i++)
     {
-        m3508_current[i] = Motor3508.getVelocityRpm(i+1);
         Motor3508.setCAN(static_cast<int16_t>(chassis_output.out_wheel[i]), i + 1);
     }
 
+    Motor3508_5.setCAN(static_cast<int16_t>(gimbal_output.out_gimbal_hight), 1);
+
     Motor3508.sendCAN();
+    Motor3508_5.sendCAN();
+    dm_motor_controller.Update(gimbal_output);
 }
 
 extern "C" {

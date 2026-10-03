@@ -31,6 +31,7 @@ void UpdateMomentaryInput(OperatorInput &input)
     input.move_x = DT7.get_left_y();
     input.move_y = DT7.get_left_x();
     input.rotate = DT7.get_right_x();
+    input.scroll = DT7.get_scroll_();
 }
 
 OperatorInput BuildOperatorInput()

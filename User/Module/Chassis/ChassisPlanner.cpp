@@ -1,6 +1,9 @@
 #include "ChassisPlanner.hpp"
+#include "ChassisStateMachine.hpp"
 #include "OmniCalculation.hpp"
 #include "SlopePlanning.hpp"
+#include "ChassisTypes.hpp"
+#include "OperatorInput.hpp"
 
 #include <cmath>
 
@@ -15,12 +18,12 @@ constexpr float REMOTE_DEADZONE = 0.05f;         // 遥控器输入死区
 constexpr float REMOTE_LINEAR_GAIN = 4.5f;       // 遥控最大平移速度：m/s
 constexpr float REMOTE_ROTATION_GAIN = 13.0f;    // 遥控最大旋转速度：rad/s
 constexpr float PATROL_SPEED_MPS = 1.1f;         // 自动巡航速度：m/s
-constexpr float PATROL_STOP_LINEAR_MPS = 0.05f; // 停稳判定：平移速度上限
+constexpr float PATROL_STOP_LINEAR_MPS = 0.05f;  // 停稳判定：平移速度上限
 constexpr float PATROL_STOP_ANGULAR_RADPS = 0.05f; // 停稳判定：角速度上限
-constexpr unsigned PATROL_SETTLE_CYCLES = 200; // 连续停稳 200 个 1 ms 周期
-constexpr float PATROL_DISTANCE_M = 5.0f;        // 自动巡航单程距离：m
-constexpr float VEHICLE_TURN_RADIUS_M = 0.3f;    // 底盘等效旋转半径：m
-constexpr float MAX_WHEEL_SPEED_MPS = 5.2f;      // 车轮允许的最大线速度：m/s
+constexpr unsigned PATROL_SETTLE_CYCLES = 200;     // 连续停稳 200 个 1 ms 周期
+constexpr float PATROL_DISTANCE_M = 5.0f;          // 自动巡航单程距离：m
+constexpr float VEHICLE_TURN_RADIUS_M = 0.3f;      // 底盘等效旋转半径：m
+constexpr float MAX_WHEEL_SPEED_MPS = 5.2f;        // 车轮允许的最大线速度：m/s
 
 // X、Y 两个平移方向各使用一个斜坡规划器，限制速度指令突变。
 // 构造参数分别表示每个控制周期允许的最大增加量和最大减小量。
@@ -29,7 +32,7 @@ Alg::Utility::SlopePlanning translation_ramp[2] = {
     Alg::Utility::SlopePlanning(0.015f, 0.015f)};
 
 // 上一周期状态，用于检测是否刚刚进入自动巡航模式。
-Enum_Chassis_States previous_state = STOP;
+Enum_Chassis_States previous_state = Enum_Chassis_States::STOP;
 
 // X 方向累计位置，单位为 m。
 // 该值由正运动学计算出的实际 Vx 积分得到，是轮式里程计的当前位置。
@@ -158,7 +161,7 @@ void ApplyTranslationRamp(ChassisTarget &target)
 void InitChassisPlanner()
 {
     // 上电或重新初始化控制系统时清空里程，并规定首次巡航从正方向开始。
-    previous_state = STOP;
+    previous_state = Enum_Chassis_States::STOP;
     estimated_position_x = 0.0f;
     patrol_start_position_x = 0.0f;
     patrol_forward = true;
@@ -176,7 +179,8 @@ ChassisTarget PlanChassisTarget(Enum_Chassis_States state, const OperatorInput &
     estimated_position_x += omni_fk.GetChassisVx() * CONTROL_PERIOD_S;
 
     // 每次从其他状态进入 PATROL，都以当前位置作为新的起点并先向前行驶。
-    if (state == PATROL && previous_state != PATROL)
+    if (state == Enum_Chassis_States::PATROL &&
+        previous_state != Enum_Chassis_States::PATROL)
     {
         patrol_start_position_x = estimated_position_x;
         patrol_forward = true;
@@ -188,17 +192,17 @@ ChassisTarget PlanChassisTarget(Enum_Chassis_States state, const OperatorInput &
     ChassisTarget target;
     switch (state)
     {
-    case REMOTE:
+    case Enum_Chassis_States::REMOTE:
         // 遥控器直接决定底盘的 X、Y 平移速度和自转角速度。
         target = PlanRemoteTarget(input);
         break;
 
-    case PATROL:
+    case Enum_Chassis_States::PATROL:
         // 根据轮式里程计位置生成 ±1.3 m/s 的往返速度目标。
         target = PlanPatrolTarget();
         break;
 
-    case STOP:
+    case Enum_Chassis_States::STOP:
     default:
         // 默认构造的目标三个方向均为零，未知状态也按停止处理。
         break;

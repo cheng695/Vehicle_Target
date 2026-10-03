@@ -1,7 +1,21 @@
 #include "ControlTask.hpp"
 #include "ChassisController.hpp"
+#include "GimbalController.hpp"
 #include "RobotContext.hpp"
 #include "buzzer_manager.hpp"
+#include "main.h"
+
+// Hight 上下限位调试值：1 表示引脚为高电平，0 表示引脚为低电平。
+volatile uint8_t debug_hight_limit_a_level = 0;
+volatile uint8_t debug_hight_limit_b_level = 0;
+
+void UpdateHightLimitSwitchDebug()
+{
+    debug_hight_limit_a_level =
+        HAL_GPIO_ReadPin(A_GPIO_Port, A_Pin) == GPIO_PIN_SET ? 1U : 0U;
+    debug_hight_limit_b_level =
+        HAL_GPIO_ReadPin(B_GPIO_Port, B_Pin) == GPIO_PIN_SET ? 1U : 0U;
+}
 
 /*
  * 检查底盘控制依赖设备是否在线。
@@ -35,13 +49,6 @@ bool check_online()
     return isconnected;
 }
 
-/*
- * 兼容旧接口：初始化底盘控制模块。
- */
-void fsm_init()
-{
-    InitChassisControl();
-}
 
 extern "C" {
 void ControlTask(void const *argument)
@@ -50,11 +57,16 @@ void ControlTask(void const *argument)
 
     BSP::WATCH_STATE::BuzzerManagerSimple::getInstance().init();
     InitChassisControl();
+    InitGimbalControl();
 
     for (;;)
     {
+        UpdateHightLimitSwitchDebug();
+
         // BSP::WATCH_STATE::BuzzerManagerSimple::getInstance().update();
         ChassisControlLoop(check_online(), operator_input);
+        GimbalControlLoop(check_online(), operator_input, osKernelSysTick() * 0.001f);
+        
         osDelay(1);
     }
 }

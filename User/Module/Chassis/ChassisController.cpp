@@ -1,4 +1,5 @@
 #include "ChassisController.hpp"
+#include "ChassisStateMachine.hpp"
 #include "ChassisEventDetector.hpp"
 #include "ChassisPlanner.hpp"
 #include "OmniCalculation.hpp"
@@ -112,12 +113,12 @@ void ChassisControlLoop(bool is_online, const OperatorInput &input)
 
     switch (chassis_fsm.Get_Now_State())
     {
-    case REMOTE:
-    case PATROL:
+    case Enum_Chassis_States::REMOTE:
+    case Enum_Chassis_States::PATROL:
         RunChassisController(chassis_target);
         break;
 
-    case STOP:
+    case Enum_Chassis_States::STOP:
     default:
         StopChassis();
         break;
@@ -125,4 +126,9 @@ void ChassisControlLoop(bool is_online, const OperatorInput &input)
 
     // 当前调用周期计入 FSM 状态运行时间。
     chassis_fsm.TIM_Update();
+
+    for (int i = 0; i < 4; ++i)
+    {
+        M3508_velocity_rpm[i] = Motor3508.getVelocityRpm(i + 1);
+    }
 }
