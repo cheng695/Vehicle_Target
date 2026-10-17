@@ -27,7 +27,7 @@ bool check_online()
 {
     bool isconnected = true;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; i++)
     {
         if (!Motor3508.isConnected(i + 1, i + 1))
         {
@@ -56,7 +56,7 @@ void ControlTask(void const *argument)
     (void)argument;
 
     BSP::WATCH_STATE::BuzzerManagerSimple::getInstance().init();
-    InitChassisControl();
+    chassis_controller.Init();
     InitGimbalControl();
 
     for (;;)
@@ -64,7 +64,7 @@ void ControlTask(void const *argument)
         UpdateHightLimitSwitchDebug();
 
         // BSP::WATCH_STATE::BuzzerManagerSimple::getInstance().update();
-        ChassisControlLoop(check_online(), operator_input);
+        chassis_controller.ControlLoop(check_online(), operator_input);
         GimbalControlLoop(check_online(), operator_input, osKernelSysTick() * 0.001f);
         
         osDelay(1);

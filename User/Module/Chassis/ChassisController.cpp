@@ -1,44 +1,33 @@
 #include "ChassisController.hpp"
+
 #include "ChassisStateMachine.hpp"
-#include "ChassisEventDetector.hpp"
-#include "ChassisPlanner.hpp"
-#include "OmniCalculation.hpp"
+#include "ChassisTypes.hpp"
+#include "ChassisTuning.hpp"
 #include "RobotContext.hpp"
-#include "pid.hpp"
 
 #include <algorithm>
 
-namespace
+ChassisController chassis_controller;
+
+ChassisController::ChassisController()
+    : omni_ik_(
+          ChassisConfig::CHASSIS_RADIUS_M,
+          ChassisConfig::WHEEL_RADIUS_M,
+          ChassisConfig::WHEEL_AZIMUTH_RAD,
+          ChassisConfig::WHEEL_DIRECTION_RAD),
+      wheel_pid_{
+          ALG::PID::PID(ChassisConfig::WHEEL_PID[0].kp, ChassisConfig::WHEEL_PID[0].ki, ChassisConfig::WHEEL_PID[0].kd,
+                        ChassisConfig::WHEEL_PID[0].output_limit, ChassisConfig::WHEEL_PID[0].integral_limit, ChassisConfig::WHEEL_PID[0].integral_separation_threshold),
+          ALG::PID::PID(ChassisConfig::WHEEL_PID[1].kp, ChassisConfig::WHEEL_PID[1].ki, ChassisConfig::WHEEL_PID[1].kd,
+                        ChassisConfig::WHEEL_PID[1].output_limit, ChassisConfig::WHEEL_PID[1].integral_limit, ChassisConfig::WHEEL_PID[1].integral_separation_threshold),
+          ALG::PID::PID(ChassisConfig::WHEEL_PID[2].kp, ChassisConfig::WHEEL_PID[2].ki, ChassisConfig::WHEEL_PID[2].kd,
+                        ChassisConfig::WHEEL_PID[2].output_limit, ChassisConfig::WHEEL_PID[2].integral_limit, ChassisConfig::WHEEL_PID[2].integral_separation_threshold),
+          ALG::PID::PID(ChassisConfig::WHEEL_PID[3].kp, ChassisConfig::WHEEL_PID[3].ki, ChassisConfig::WHEEL_PID[3].kd,
+                        ChassisConfig::WHEEL_PID[3].output_limit, ChassisConfig::WHEEL_PID[3].integral_limit, ChassisConfig::WHEEL_PID[3].integral_separation_threshold)}
 {
-constexpr int CHASSIS_WHEEL_COUNT = 4;
-constexpr float CHASSIS_RADIUS_M = 0.30f;
-constexpr float WHEEL_RADIUS_M = 0.07f;
-constexpr float MOTOR_CURRENT_LIMIT = 16384.0f;
+}
 
-/*
- * 底盘逆运动学对象。
- * 半径和轮径必须与 RobotContext.cpp 中的 omni_fk 完全一致，
- * 否则目标轮速与实际速度反馈将使用两套不同的底盘模型。
- */
-Alg::CalculationBase::Omni_IK omni_ik(
-    CHASSIS_RADIUS_M,
-    WHEEL_RADIUS_M,
-    chassis_wheel_azimuth,
-    chassis_wheel_direction);
-
-// 四个底盘 3508 分别使用独立的速度 PID。
-ALG::PID::PID wheel_pid[CHASSIS_WHEEL_COUNT] = {
-    ALG::PID::PID(700.0f, 0.5f, 0.0f, MOTOR_CURRENT_LIMIT, 2500.0f, 100.0f),
-    ALG::PID::PID(700.0f, 0.5f, 0.0f, MOTOR_CURRENT_LIMIT, 2500.0f, 100.0f),
-    ALG::PID::PID(700.0f, 0.5f, 0.0f, MOTOR_CURRENT_LIMIT, 2500.0f, 100.0f),
-    ALG::PID::PID(700.0f, 0.5f, 0.0f, MOTOR_CURRENT_LIMIT, 2500.0f, 150.0f)};
-
-/*
- * 每个控制周期都读取四个底盘电机的实际轮速并执行 FK。
- * FK 输出的 Vx、Vy、Vw 是底盘的实际速度反馈，其中 Vx 会被
- * ChassisPlanner 用于轮式里程计的位置积分。
- */
-void UpdateChassisForwardKinematics()
+void ChassisController::UpdateForwardKinematics()
 {
     omni_fk.OmniForKinematics(
         Motor3508.getVelocityRads(1),
@@ -47,23 +36,18 @@ void UpdateChassisForwardKinematics()
         Motor3508.getVelocityRads(4));
 }
 
-// 停止四个底盘电机，并清空速度 PID 的历史状态。
-void StopChassis()
+void ChassisController::Stop()
 {
-    for (int i = 0; i < CHASSIS_WHEEL_COUNT; ++i)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; ++i)
     {
-        wheel_pid[i].reset();
+        wheel_pid_[i].reset();
         chassis_output.out_wheel[i] = 0.0f;
     }
 }
 
-/*
- * 将 Planner 给出的底盘 Vx、Vy、Vw 目标通过 IK 转换为四个目标轮速，
- * 再使用各轮的实际转速进行速度闭环，最终输出 DJI 电调电流指令。
- */
-void RunChassisController(const ChassisTarget &target)
+void ChassisController::Run(const ChassisTarget &target)
 {
-    omni_ik.OmniInvKinematics(
+    omni_ik_.OmniInvKinematics(
         target.target_translation_x,
         target.target_translation_y,
         target.target_rotation,
@@ -71,63 +55,68 @@ void RunChassisController(const ChassisTarget &target)
         1.0f,
         1.0f);
 
-    for (int i = 0; i < CHASSIS_WHEEL_COUNT; ++i)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; ++i)
     {
-        const float target_wheel_speed = omni_ik.GetMotor(i);
+        wheel_pid_[i].setK(ChassisTuning::WHEEL_PID_KP[i],
+                           ChassisTuning::WHEEL_PID_KI[i],
+                           ChassisTuning::WHEEL_PID_KD[i]);
+        wheel_pid_[i].setMax(ChassisTuning::WHEEL_PID_OUTPUT_LIMIT[i]);
+        wheel_pid_[i].setIntegralLimit(
+            ChassisTuning::WHEEL_PID_INTEGRAL_LIMIT[i]);
+        wheel_pid_[i].setIntegralSeparation(
+            ChassisTuning::WHEEL_PID_INTEGRAL_SEPARATION[i]);
+        const float target_wheel_speed = omni_ik_.GetMotor(i);
         const float actual_wheel_speed = Motor3508.getVelocityRads(i + 1);
 
-        wheel_pid[i].UpDate(target_wheel_speed, actual_wheel_speed);
-        chassis_output.out_wheel[i] = std::clamp(wheel_pid[i].getOutput(), -MOTOR_CURRENT_LIMIT, MOTOR_CURRENT_LIMIT);
+        wheel_pid_[i].UpDate(target_wheel_speed, actual_wheel_speed);
+        const float motor_current_limit = ChassisTuning::MOTOR_CURRENT_LIMIT;
+        chassis_output.out_wheel[i] = std::clamp(
+            wheel_pid_[i].getOutput(), -motor_current_limit, motor_current_limit);
     }
 }
-}
 
-void InitChassisControl()
+void ChassisController::Init()
 {
-    chassis_fsm.Init();
-    InitChassisPlanner();
+    state_machine_.Init();
+    planner_.Init();
 
-    for (int i = 0; i < CHASSIS_WHEEL_COUNT; ++i)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; ++i)
     {
-        wheel_pid[i].reset();
+        wheel_pid_[i].reset();
         chassis_output.out_wheel[i] = 0.0f;
     }
 }
 
-void ChassisControlLoop(bool is_online, const OperatorInput &input)
+void ChassisController::ControlLoop(bool is_online, const OperatorInput &input)
 {
-    // 将设备在线状态和遥控器拨杆组合转换为底盘状态事件。
-    chassis_fsm.Dispatch(DetectChassisEvent(input, is_online));
+    state_machine_.Dispatch(event_detector_.Detect(input, is_online));
 
-    // 设备离线保护优先级最高，不允许其他事件覆盖 STOP。
     if (!is_online)
     {
-        chassis_fsm.ForceStop();
+        state_machine_.ForceStop();
     }
 
-    // 无论当前是否停止，都更新 FK，保证速度反馈和轮式里程计连续有效。
-    UpdateChassisForwardKinematics();
+    UpdateForwardKinematics();
 
-    // Planner 使用最新的 FK 速度反馈生成本周期运动目标。
-    chassis_target = PlanChassisTarget(chassis_fsm.Get_Now_State(), input);
+    const Enum_Chassis_States current_state = state_machine_.GetCurrentState();
+    chassis_target = planner_.Plan(current_state, input);
 
-    switch (chassis_fsm.Get_Now_State())
+    switch (current_state)
     {
     case Enum_Chassis_States::REMOTE:
     case Enum_Chassis_States::PATROL:
-        RunChassisController(chassis_target);
+        Run(chassis_target);
         break;
 
     case Enum_Chassis_States::STOP:
     default:
-        StopChassis();
+        Stop();
         break;
     }
 
-    // 当前调用周期计入 FSM 状态运行时间。
-    chassis_fsm.TIM_Update();
+    state_machine_.Update();
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; ++i)
     {
         M3508_velocity_rpm[i] = Motor3508.getVelocityRpm(i + 1);
     }

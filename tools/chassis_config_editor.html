@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>底盘参数离线配置</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202c;
+      --muted: #647184;
+      --line: #dce3eb;
+      --panel: #fff;
+      --canvas: #f3f6fa;
+      --accent: #1769d2;
+      --accent-dark: #1055ad;
+      --good: #18794e;
+      --bad: #b42318;
+      font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); }
+    header { padding: 28px max(24px, calc((100vw - 1180px) / 2)); background: #12243a; color: white; }
+    header h1 { margin: 0 0 8px; font-size: 25px; font-weight: 650; }
+    header p { margin: 0; color: #d2dfef; font-size: 14px; }
+    main { max-width: 1180px; margin: 24px auto 60px; padding: 0 20px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .toolbar-note { color: var(--muted); font-size: 13px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { border: 1px solid var(--line); border-radius: 8px; padding: 10px 15px; background: white; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+    button:hover { border-color: #9db4ce; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+    button.primary:hover { background: var(--accent-dark); }
+    button.save { background: #15395f; border-color: #15395f; color: white; }
+    .status { min-height: 22px; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+    .status.error { color: var(--bad); }
+    .status.success { color: var(--good); }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px #18324b0a; }
+    section.wide { grid-column: 1 / -1; }
+    h2 { margin: 0 0 5px; font-size: 17px; }
+    .section-note { margin: 0 0 17px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 18px; }
+    .field { min-width: 0; }
+    .field-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    label { font-size: 13px; font-weight: 600; }
+    .unit { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    input { width: 100%; height: 38px; border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 10px; color: var(--ink); background: #fff; font: 14px ui-monospace, Consolas, monospace; }
+    input:focus { outline: 3px solid #1769d222; border-color: var(--accent); }
+    input:disabled { background: #f0f3f7; color: #536174; }
+    .help { min-height: 31px; margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .pid-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e8edf3; text-align: left; }
+    th { color: var(--muted); font-size: 12px; font-weight: 600; }
+    td:first-child { width: 94px; font-size: 13px; font-weight: 600; }
+    td input { min-width: 90px; }
+    .warning { margin-top: 14px; padding: 11px 13px; border-radius: 8px; background: #fff7e6; color: #805400; font-size: 12px; line-height: 1.5; }
+    footer { margin-top: 15px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      section.wide { grid-column: auto; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .fields { grid-template-columns: 1fr; }
+      header { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>底盘参数离线配置</h1>
+    <p>在本机编辑 chassis.yaml。更改在重新编译并烧录后生效；此页面不连接机器人。</p>
+    <p style="margin-top:10px"><a href="/" style="color:#d2dfef;text-decoration:none">← 返回配置首页</a></p>
+  </header>
+  <main>
+    <div class="toolbar">
+      <div class="toolbar-note">配置来源：<code>config/chassis.yaml</code> · <a href="/gimbal">打开云台配置 →</a></div>
+      <div class="actions">
+        <button id="reference">默认参考参数</button>
+        <button id="zero-pid">归零 PID</button>
+        <button id="reload">重新载入</button>
+        <button id="export">导出 YAML</button>
+        <button id="save" class="save">保存到项目</button>
+      </div>
+    </div>
+    <div id="status" class="status" role="status"></div>
+    <div class="layout">
+      <section class="card">
+        <h2>底盘几何</h2>
+        <p class="section-note">轮序必须与电机 ID 和 PID 行顺序一致。当前运动学实现固定为四轮。</p>
+        <div id="geometry" class="fields"></div>
+      </section>
+      <section class="card">
+        <h2>车轮安装角</h2>
+        <p class="section-note">角度单位为弧度；修改布局时请确认 FK 与 IK 使用同一组数据。</p>
+        <div id="layout-fields" class="fields"></div>
+      </section>
+      <section class="card wide">
+        <h2>四轮速度 PID</h2>
+        <p id="pid-help" class="section-note"></p>
+        <div class="pid-wrap"><table><thead><tr>
+          <th>车轮</th><th>Kp</th><th>Ki</th><th>Kd</th><th>输出限幅</th><th>积分限幅</th><th>积分分离阈值</th>
+        </tr></thead><tbody id="pid-body"></tbody></table></div>
+        <div class="warning">四个车轮当前共用同一个输出限幅。编辑器会检查四组 PID 的输出限幅一致。</div>
+      </section>
+      <section class="card">
+        <h2>遥控与斜坡</h2>
+        <p class="section-note">斜坡参数表示每个控制周期允许的目标速度变化量。</p>
+        <div id="remote-fields" class="fields"></div>
+      </section>
+      <section class="card">
+        <h2>自动巡航</h2>
+        <p class="section-note">车辆按设定距离往返；端点需连续满足停稳条件后才换向。</p>
+        <div id="patrol-fields" class="fields"></div>
+      </section>
+      <section class="card wide">
+        <h2>电机与 CAN 映射</h2>
+        <p class="section-note">通常在更换电机、调整总线 ID 或修正电机模型时修改。</p>
+        <div id="motor-fields" class="fields"></div>
+      </section>
+    </div>
+    <footer>保存会直接更新项目中的 YAML，并保留现有行内注释。导出只下载 YAML，不修改项目文件。</footer>
+  </main>
+  <script>
+    let config = null;
+    let referenceConfig = null;
+    const $ = (id) => document.getElementById(id);
+    const docs = () => config.documentation || {};
+    const getPath = (path) => path.split(".").reduce((value, key) => value[key], config);
+    function setPath(path, value) {
+      const parts = path.split(".");
+      const key = parts.pop();
+      const target = parts.reduce((object, part) => object[part], config);
+      target[key] = value;
+    }
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+    function setStatus(message, kind = "") {
+      const node = $("status");
+      node.textContent = message;
+      node.className = `status ${kind}`;
+    }
+    function makeField(path, label, unit, docKey, options = {}) {
+      const value = getPath(path);
+      const id = `f-${path.replaceAll(".", "-")}`;
+      const help = docs()[docKey] || "";
+      const disabled = options.disabled ? "disabled" : "";
+      const min = options.min !== undefined ? `min="${escapeHtml(options.min)}"` : "";
+      const max = options.max !== undefined ? `max="${escapeHtml(options.max)}"` : "";
+      return `<div class="field"><div class="field-head"><label for="${id}">${escapeHtml(label)}</label><span class="unit">${escapeHtml(unit || "")}</span></div><input id="${id}" data-path="${path}" type="number" step="${options.step || "any"}" ${min} ${max} value="${escapeHtml(value)}" required ${disabled}><p class="help">${escapeHtml(help)}</p></div>`;
+    }
+    function render() {
+      $("geometry").innerHTML =
+        makeField("wheel_count", "车轮数量", "个", "wheel_count", { disabled: true, step: "1" }) +
+        makeField("geometry.chassis_radius_m", "底盘等效半径", "m", "chassis_radius_m", { min: "0.000001" }) +
+        makeField("geometry.wheel_radius_m", "车轮半径", "m", "wheel_radius_m", { min: "0.000001" });
+
+      let layoutHtml = "";
+      for (let i = 0; i < config.wheel_count; i++) {
+        layoutHtml += makeField(`wheel_layout.azimuth_rad.${i}`, `车轮 ${i + 1} 方位角`, "rad", "wheel_azimuth_rad") +
+                      makeField(`wheel_layout.direction_rad.${i}`, `车轮 ${i + 1} 安装方向`, "rad", "wheel_direction_rad");
+      }
+      $("layout-fields").innerHTML = layoutHtml;
+
+      $("pid-help").textContent = docs().wheel_pid || "";
+      $("pid-body").innerHTML = config.wheel_pid.map((row, wheel) =>
+        `<tr><td>车轮 ${wheel + 1}</td>${row.map((value, col) => `<td><input type="number" step="any" data-path="wheel_pid.${wheel}.${col}" aria-label="车轮 ${wheel + 1} PID 参数 ${col + 1}" value="${escapeHtml(value)}"></td>`).join("")}</tr>`
+      ).join("");
+
+      $("remote-fields").innerHTML =
+        makeField("control_period_s", "控制周期", "s", "control_period_s") +
+        makeField("translation_ramp.increase_per_cycle", "平移增速斜坡", "每周期", "translation_ramp_increase") +
+        makeField("translation_ramp.decrease_per_cycle", "平移减速斜坡", "每周期", "translation_ramp_decrease") +
+        makeField("remote.deadzone", "遥控死区", "归一化输入", "remote_deadzone") +
+        makeField("remote.linear_gain_mps", "平移速度增益", "m/s", "remote_linear_gain_mps") +
+        makeField("remote.rotation_gain_radps", "旋转速度增益", "rad/s", "remote_rotation_gain_radps") +
+        makeField("patrol.vehicle_turn_radius_m", "等效转弯半径", "m", "vehicle_turn_radius_m") +
+        makeField("patrol.max_wheel_speed_mps", "车轮线速度上限", "m/s", "max_wheel_speed_mps");
+
+      $("patrol-fields").innerHTML =
+        makeField("patrol.speed_mps", "巡航速度", "m/s", "patrol_speed_mps") +
+        makeField("patrol.distance_m", "单程距离", "m", "patrol_distance_m") +
+        makeField("patrol.stop_linear_threshold_mps", "平移停稳阈值", "m/s", "patrol_stop_linear_threshold_mps") +
+        makeField("patrol.stop_angular_threshold_radps", "角速度停稳阈值", "rad/s", "patrol_stop_angular_threshold_radps") +
+        makeField("patrol.settle_cycles", "端点停稳周期", "周期", "patrol_settle_cycles", { step: "1" });
+
+      $("motor-fields").innerHTML =
+        makeField("motor.init_can_id", "接收帧 CAN ID", "十进制 / YAML 导出为十六进制", "motor_init_can_id", { step: "1", min: "0", max: "2047" }) +
+        makeField("motor.send_can_id", "发送帧 CAN ID", "十进制 / YAML 导出为十六进制", "motor_send_can_id", { step: "1", min: "0", max: "2047" }) +
+        config.motor.receive_ids.map((_, i) => makeField(`motor.receive_ids.${i}`, `车轮 ${i + 1} 电机 ID`, "ID", "motor_receive_ids", { step: "1", min: "1", max: "8" })).join("") +
+        makeField("motor.reduction_ratio", "减速比", "比例", "motor_reduction_ratio") +
+        makeField("motor.torque_constant_nm_per_a", "力矩常数", "N·m/A", "motor_torque_constant_nm_per_a") +
+        makeField("motor.feedback_current_max", "反馈电流量程", "原始量程", "motor_feedback_current_max") +
+        makeField("motor.model_current_max_a", "模型最大电流", "A", "motor_model_current_max_a") +
+        makeField("motor.encoder_resolution", "编码器分辨率", "计数/圈", "motor_encoder_resolution");
+
+      document.querySelectorAll("[data-path]").forEach((input) => {
+        if (input.disabled) return;
+        input.addEventListener("input", () => {
+          if (input.value === "") return;
+          const parts = input.dataset.path.split(".");
+          const oldValue = getPath(input.dataset.path);
+          const value = Number(input.value);
+          if (!Number.isFinite(value)) return;
+          setPath(input.dataset.path, Number.isInteger(oldValue) ? Math.trunc(value) : value);
+          setStatus("未保存的修改", "");
+        });
+      });
+    }
+    async function requestJson(path, body) {
+      const response = await fetch(path, {
+        method: body ? "POST" : "GET",
+        headers: body ? { "Content-Type": "application/json" } : {},
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "请求失败");
+      return data;
+    }
+    function validateForm() {
+      const invalid = document.querySelector("input:not(:disabled):invalid");
+      if (!invalid) return true;
+      invalid.focus();
+      setStatus("请检查空值或超出允许范围的参数。", "error");
+      return false;
+    }
+    async function loadConfig() {
+      setStatus("正在读取项目配置…");
+      const data = await requestJson("/api/config");
+      referenceConfig = JSON.parse(JSON.stringify(data.config));
+      config = JSON.parse(JSON.stringify(referenceConfig));
+      render();
+      setStatus("已载入项目配置。", "success");
+    }
+    $("reference").addEventListener("click", () => {
+      if (!referenceConfig) return;
+      config = JSON.parse(JSON.stringify(referenceConfig));
+      render();
+      setStatus("已恢复本次打开页面时载入的默认参考参数，保存后写入项目。", "success");
+    });
+    $("zero-pid").addEventListener("click", () => {
+      if (!config) return;
+      config.wheel_pid.forEach((row) => { row[0] = 0; row[1] = 0; row[2] = 0; });
+      render();
+      setStatus("四个车轮 PID 的 Kp、Ki、Kd 已归零；其它参数未改动，保存后写入项目。", "success");
+    });
+    $("reload").addEventListener("click", async () => {
+      if (!confirm("重新载入会丢弃当前未保存的修改。继续吗？")) return;
+      try { await loadConfig(); } catch (error) { setStatus(error.message, "error"); }
+    });
+    $("export").addEventListener("click", async () => {
+      if (!validateForm()) return;
+      try {
+        const response = await fetch("/api/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config })
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "导出失败");
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "chassis.yaml";
+        link.click();
+        URL.revokeObjectURL(url);
+        setStatus("YAML 已导出，项目文件未修改。", "success");
+      } catch (error) { setStatus(error.message, "error"); }
+    });
+    $("save").addEventListener("click", async () => {
+      if (!validateForm()) return;
+      if (!confirm("确认将当前参数写入项目的 config/chassis.yaml？现有注释会保留。")) return;
+      try {
+        const data = await requestJson("/api/save", { config });
+        setStatus(data.message, "success");
+      } catch (error) { setStatus(error.message, "error"); }
+    });
+    loadConfig().catch((error) => setStatus(error.message, "error"));
+  </script>
+</body>
+</html>

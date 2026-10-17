@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>遥控器挡位说明</title>
+  <style>
+    :root { color-scheme:light; --ink:#17202c; --muted:#647184; --line:#dce3eb; --canvas:#f3f6fa; --accent:#1769d2; --good:#18794e; --warn:#805400; font-family:"Segoe UI","Microsoft YaHei UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--canvas); color:var(--ink); }
+    header { padding:27px max(24px,calc((100vw - 1180px)/2)); background:#12243a; color:#fff; }
+    header a { color:#d2dfef; font-size:13px; text-decoration:none; }
+    header a:hover { text-decoration:underline; }
+    header h1 { margin:12px 0 7px; font-size:25px; font-weight:650; }
+    header p { margin:0; color:#d2dfef; font-size:14px; line-height:1.6; }
+    main { max-width:1180px; margin:24px auto 55px; padding:0 20px; }
+    .card { margin-bottom:17px; padding:20px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 2px 8px #18324b0a; }
+    h2 { margin:0 0 6px; font-size:18px; }
+    .note { margin:0 0 15px; color:var(--muted); font-size:13px; line-height:1.6; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; min-width:780px; border-collapse:separate; border-spacing:7px; table-layout:fixed; }
+    th { padding:8px; color:var(--muted); font-size:12px; font-weight:650; text-align:center; }
+    th.row-head { width:105px; }
+    td { padding:13px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; vertical-align:top; }
+    td.stop-cell { background:#fff8f7; border-color:#f1d1cc; }
+    .combo { margin-bottom:8px; color:var(--muted); font-size:11px; }
+    .action { margin:5px 0; font-size:12px; line-height:1.45; }
+    .action strong { color:#23364c; }
+    .tag { display:inline-block; min-width:43px; margin-right:5px; padding:2px 6px; border-radius:5px; background:#eaf2fc; color:#245d9c; font-size:10px; font-weight:650; text-align:center; }
+    .stop-cell .tag { background:#fbe6e3; color:#a33e32; }
+    .details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .detail { padding:15px; border:1px solid #e8edf3; border-radius:9px; }
+    .detail h3 { margin:0 0 12px; font-size:16px; }
+    .steps { display:grid; gap:9px; }
+    .step { display:flex; align-items:flex-start; gap:9px; color:#39485b; font-size:13px; line-height:1.5; }
+    .step-num { display:grid; flex:0 0 22px; height:22px; place-items:center; border-radius:7px; background:#eaf2fc; color:var(--accent); font-size:11px; font-weight:700; }
+    .step strong { color:#17202c; }
+    .mode-tip { margin-top:14px; padding:12px 14px; border:1px solid #cfe0f4; border-radius:8px; background:#f3f8fe; color:#28496f; font-size:13px; line-height:1.55; }
+    .mode-tip strong { color:#173b63; }
+    .warning { padding:12px 14px; border-radius:8px; background:#fff7e6; color:var(--warn); font-size:12px; line-height:1.65; }
+    footer { margin-top:16px; color:var(--muted); font-size:12px; }
+    @media(max-width:760px) { header{padding:23px} main{padding:0 13px} .details{grid-template-columns:1fr} .card{padding:15px} }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">← 返回配置首页</a>
+    <h1>遥控器挡位说明</h1>
+    <p>左开关 S1 与右开关 S2 各有上、中、下三档，组合为 3×3 共 9 种挡位。</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>九种挡位组合</h2>
+      <p class="note">行表示左开关 S1，列表示右开关 S2。表格列出每种组合下底盘、Yaw 和 Hight 的行为。</p>
+      <div class="table-wrap">
+        <table aria-label="遥控器左开关和右开关的九种挡位组合">
+          <thead><tr><th class="row-head">左开关 S1<br>↓ / 右开关 S2 →</th><th>上档</th><th>中档</th><th>下档</th></tr></thead>
+          <tbody>
+            <tr>
+              <th class="row-head">上档</th>
+              <td><div class="combo">S1 上 · S2 上</div><div class="action"><span class="tag">底盘</span><strong>自动巡航</strong></div><div class="action"><span class="tag">Yaw</span>匀速模式</div><div class="action"><span class="tag">Hight</span>启动升降循环</div></td>
+              <td><div class="combo">S1 上 · S2 中</div><div class="action"><span class="tag">底盘</span><strong>自动巡航</strong></div><div class="action"><span class="tag">Yaw</span>匀速模式</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+              <td><div class="combo">S1 上 · S2 下</div><div class="action"><span class="tag">底盘</span><strong>自动巡航</strong></div><div class="action"><span class="tag">Yaw</span>停止</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+            </tr>
+            <tr>
+              <th class="row-head">中档</th>
+              <td><div class="combo">S1 中 · S2 上</div><div class="action"><span class="tag">底盘</span><strong>遥控模式</strong></div><div class="action"><span class="tag">Yaw</span>变速模式</div><div class="action"><span class="tag">Hight</span>启动升降循环</div></td>
+              <td><div class="combo">S1 中 · S2 中</div><div class="action"><span class="tag">底盘</span><strong>遥控模式</strong></div><div class="action"><span class="tag">Yaw</span>匀速模式</div><div class="action"><span class="tag">Hight</span>启动升降循环</div></td>
+              <td><div class="combo">S1 中 · S2 下</div><div class="action"><span class="tag">底盘</span><strong>遥控模式</strong></div><div class="action"><span class="tag">Yaw</span>停止</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+            </tr>
+            <tr>
+              <th class="row-head">下档</th>
+              <td><div class="combo">S1 下 · S2 上</div><div class="action"><span class="tag">底盘</span><strong>遥控模式</strong></div><div class="action"><span class="tag">Yaw</span>变速模式</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+              <td><div class="combo">S1 下 · S2 中</div><div class="action"><span class="tag">底盘</span><strong>遥控模式</strong></div><div class="action"><span class="tag">Yaw</span>匀速模式</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+              <td class="stop-cell"><div class="combo">S1 下 · S2 下</div><div class="action"><span class="tag">底盘</span><strong>停止</strong></div><div class="action"><span class="tag">Yaw</span>停止</div><div class="action"><span class="tag">Hight</span>停止请求，运动中会回下限位</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <h2>各功能的操作方式</h2>
+      <p class="note">挡位决定工作模式；具体速度和行程参数可在底盘、云台配置页查看。</p>
+      <div class="details">
+        <article class="detail"><h3>底盘遥控与巡航</h3><p>遥控模式由遥控器摇杆输入控制底盘移动。自动巡航模式按配置的单程距离和速度往返运行；只有左开关 S1 处于下档且右开关 S2 也处于下档时，底盘进入停止状态。</p></article>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Yaw 滚轮调速</h2>
+      <p class="note">先在上方挡位表确认 Yaw 模式，再按对应方法操作滚轮。</p>
+      <div class="details">
+        <article class="detail">
+          <h3>匀速模式</h3>
+          <div class="steps">
+            <div class="step"><span class="step-num">1</span><span><strong>拨一下</strong>：目标速度增加或减少一个步长。</span></div>
+            <div class="step"><span class="step-num">2</span><span><strong>反方向拨</strong>：目标速度朝相反方向变化。</span></div>
+            <div class="step"><span class="step-num">3</span><span><strong>每次拨完回中</strong>：回中后才能再次调速；速度到上限后不再增加。</span></div>
+          </div>
+        </article>
+        <article class="detail">
+          <h3>变速模式</h3>
+          <div class="steps">
+            <div class="step"><span class="step-num">1</span><span><strong>拨一下</strong>：Yaw 按变速曲线启动。</span></div>
+            <div class="step"><span class="step-num">2</span><span><strong>反方向拨一下</strong>：Yaw 停止。</span></div>
+            <div class="step"><span class="step-num">3</span><span><strong>回中，再向反方向拨</strong>：Yaw 反向启动。</span></div>
+          </div>
+        </article>
+      </div>
+      <div class="mode-tip"><strong>切换挡位后：</strong>滚轮先回中，再重新拨动；否则新模式不会响应当前这次拨动。</div>
+    </section>
+    <section class="card">
+      <h2>Hight 升降循环与停止</h2>
+      <p class="note">启动挡位为 S1 中档且 S2 中/上档，或 S1 上档且 S2 上档。启动后升降机构在上下限位之间循环运动。</p>
+      <div class="warning">切到其它挡位会发出停止请求：如果升降正在运动，会先受控返回下限位，再进入停止状态。启动循环只会在机构已停止于下限位时生效；上下限位同时触发时会立即强制停止。</div>
+    </section>
+    <footer>以上对应当前固件中 S1/S2 的事件解析和状态机逻辑。</footer>
+  </main>
+</body>
+</html>

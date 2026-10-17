@@ -34,3 +34,13 @@ void Chassis_FSM::ForceStop()
 {
     TransitTo(Enum_Chassis_States::STOP);
 }
+
+Enum_Chassis_States Chassis_FSM::GetCurrentState() const
+{
+    return ChassisFSMBase::Get_Now_State();
+}
+
+void Chassis_FSM::Update()
+{
+    ChassisFSMBase::TIM_Update();
+}

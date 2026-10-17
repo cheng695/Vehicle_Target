@@ -1,19 +1,19 @@
 #include "ChassisEventDetector.hpp"
+
 #include "DT7.hpp"
 
-namespace
-{
 using RemoteController = BSP::REMOTE_CONTROL::RemoteController;
 
-bool IsValidSwitch(uint8_t position)
+bool ChassisEventDetector::IsValidSwitch(std::uint8_t position)
 {
     return position == RemoteController::UP ||
            position == RemoteController::MIDDLE ||
            position == RemoteController::DOWN;
 }
-}
 
-ChassisEvent ResolveChassisEvent(const OperatorInput &input, bool equipment_online)
+ChassisEvent ChassisEventDetector::Resolve(
+    const OperatorInput &input,
+    bool equipment_online) const
 {
     // 安全条件具有最高优先级，任意关键设备离线时底盘必须停止。
     if (!equipment_online)
@@ -28,7 +28,7 @@ ChassisEvent ResolveChassisEvent(const OperatorInput &input, bool equipment_onli
         return ChassisEvent::StopRequested;
     }
 
-    // 左拨杆上档：底盘进入自动巡航，以 1 m/s 在 5 m 行程内往返运动。
+    // 左拨杆上档：底盘进入自动巡航。
     // 在这一组模式中，右拨杆只负责选择云台工作方式，不影响底盘状态。
     if (input.left_switch == RemoteController::UP)
     {
@@ -51,25 +51,23 @@ ChassisEvent ResolveChassisEvent(const OperatorInput &input, bool equipment_onli
     return ChassisEvent::RemoteRequested;
 }
 
-ChassisEvent DetectChassisEvent(const OperatorInput &input, bool equipment_online)
+ChassisEvent ChassisEventDetector::Detect(
+    const OperatorInput &input,
+    bool equipment_online)
 {
-    static uint8_t last_left_switch = 0;
-    static uint8_t last_right_switch = 0;
-    static bool last_online = false;
-
     const bool input_changed =
-        input.left_switch != last_left_switch ||
-        input.right_switch != last_right_switch ||
-        equipment_online != last_online;
+        input.left_switch != last_left_switch_ ||
+        input.right_switch != last_right_switch_ ||
+        equipment_online != last_online_;
 
-    last_left_switch = input.left_switch;
-    last_right_switch = input.right_switch;
-    last_online = equipment_online;
+    last_left_switch_ = input.left_switch;
+    last_right_switch_ = input.right_switch;
+    last_online_ = equipment_online;
 
     if (!input_changed)
     {
         return ChassisEvent::None;
     }
 
-    return ResolveChassisEvent(input, equipment_online);
+    return Resolve(input, equipment_online);
 }

@@ -248,10 +248,9 @@ template <uint8_t N> class GM3508 : public DjiMotorBase<N>
      * @param Init_id 初始ID
      * @param recv_idxs_ 电机ID列表
      */
-    GM3508(uint16_t Init_id, const uint8_t (&recv_idxs)[N], uint32_t send_idxs)
-        : DjiMotorBase<N>(Init_id, recv_idxs, send_idxs,
-                          // 直接构造参数对象
-                          Parameters(268.0 / 17.0, 0.3, 16384, 20, 8192))
+    GM3508(uint16_t Init_id, const uint8_t (&recv_idxs)[N], uint32_t send_idxs,
+           Parameters params = Parameters(268.0 / 17.0, 0.3, 16384, 20, 8192))
+        : DjiMotorBase<N>(Init_id, recv_idxs, send_idxs, params)
     {
     }
 };

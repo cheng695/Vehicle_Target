@@ -362,9 +362,11 @@ namespace BSP::Motor::DM
     class J4310 : public DMMotorBase<N>
     {
     public:
-        J4310(uint16_t Init_id, const uint8_t (&ids)[N], const uint32_t (&send_idxs)[N])
+        J4310(uint16_t Init_id, const uint8_t (&ids)[N], const uint32_t (&send_idxs)[N],
+              Parameters params = Parameters(-12.56f, 12.56f, -30.0f, 30.0f,
+                                             -10.0f, 10.0f, 0.0f, 500.0f, 0.0f, 5.0f))
             : DMMotorBase<N>(Init_id, ids, send_idxs, 
-                            Parameters(-12.56f, 12.56f, -30.0f, 30.0f, -10.0f, 10.0f, 0.0f, 500.0f, 0.0f, 5.0f))
+                            params)
         {
         }
     };

@@ -24,7 +24,8 @@ namespace Alg::CalculationBase
              * @param wheel_azimuth 轮子方位角 轮子自身的滚轮朝向（即允许自由滚动的方向）相对于底盘自身坐标系 X 轴正方向的夹角
              * @param wheel_direction 轮子坐标 “底盘几何中心”指向“当前轮子中心安装点”的这个向量，与底盘自身坐标系 X 轴正方向的夹角。
              */
-            Omni_FK(float r, float s, float n, float wheel_azimuth[4], float wheel_direction[4]) 
+            Omni_FK(float r, float s, float n,
+                    const float (&wheel_azimuth)[4], const float (&wheel_direction)[4])
                 : R(r), S(s), N(n)
             {
                 for(int i = 0; i < 4; i++)
@@ -256,7 +257,8 @@ namespace Alg::CalculationBase
              * @param wheel_azimuth 轮子方位角 轮子自身的滚轮朝向（即允许自由滚动的方向）相对于底盘自身坐标系 X 轴正方向的夹角
              * @param wheel_direction 轮子坐标 “底盘几何中心”指向“当前轮子中心安装点”的这个向量，与底盘自身坐标系 X 轴正方向的夹角。
              */
-            Omni_IK(float r, float s, float wheel_azimuth[4], float wheel_direction[4]) 
+            Omni_IK(float r, float s,
+                    const float (&wheel_azimuth)[4], const float (&wheel_direction)[4])
                 : R(r), S(s) 
             {
                 for(int i = 0; i < 4; i++)

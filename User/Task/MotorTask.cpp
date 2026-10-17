@@ -35,12 +35,13 @@ static void motor_control_logic(uint32_t tick)
 {
     (void)tick;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < ChassisConfig::WHEEL_COUNT; i++)
     {
         Motor3508.setCAN(static_cast<int16_t>(chassis_output.out_wheel[i]), i + 1);
     }
 
-    Motor3508_5.setCAN(static_cast<int16_t>(gimbal_output.out_gimbal_hight), 1);
+        Motor3508_5.setCAN(static_cast<int16_t>(gimbal_output.out_gimbal_hight),
+                           GimbalConfig::HIGHT_MOTOR_CHANNEL);
 
     Motor3508.sendCAN();
     Motor3508_5.sendCAN();

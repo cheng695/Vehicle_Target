@@ -24,8 +24,8 @@ enum class GimbalYawEvent : uint8_t
 // Yaw 轴状态机。
 // 公共状态统计、状态运行时间和状态切换逻辑由 FSMBase 提供。
 class GimbalYaw_FSM
-    : public FSMBase<GimbalYawState,
-                     static_cast<uint8_t>(GimbalYawState::STATUS_COUNT)>
+    : private FSMBase<GimbalYawState,
+                      static_cast<uint8_t>(GimbalYawState::STATUS_COUNT)>
 {
 public:
     // 初始化状态机，默认进入 STOP 状态。
@@ -36,6 +36,15 @@ public:
 
     // 强制停止 Yaw 转动。
     void ForceStop();
+
+    /** @brief 获取当前 Yaw 状态。
+     *  @return 当前 Yaw 状态。
+     */
+    GimbalYawState GetCurrentState() const;
+
+    /** @brief 累加当前 Yaw 状态的运行周期计数。
+     */
+    void UpdateTime();
 
 private:
     void TransitTo(GimbalYawState next_state);
@@ -66,8 +75,8 @@ enum class GimbalHightEvent : uint8_t
 // Hight 机构状态机。
 // 这里只决定运动阶段，具体的梯形速度规划由后续 Planner 实现。
 class GimbalHight_FSM
-    : public FSMBase<GimbalHightState,
-                     static_cast<uint8_t>(GimbalHightState::STATUS_COUNT)>
+    : private FSMBase<GimbalHightState,
+                      static_cast<uint8_t>(GimbalHightState::STATUS_COUNT)>
 {
 public:
     // 初始化后默认认为机构位于下限位并进入 STOP 状态。
@@ -78,6 +87,11 @@ public:
 
     // 紧急情况下立即进入 STOP，不执行自动回底过程。
     void ForceStop();
+
+    /** @brief 获取当前升降机构状态。
+     *  @return 当前升降机构状态。
+     */
+    GimbalHightState GetCurrentState() const;
 
 private:
     void TransitTo(GimbalHightState next_state);

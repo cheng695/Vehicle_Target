@@ -18,6 +18,48 @@ endif()
 
 project(${CMAKE_PROJECT_NAME} LANGUAGES C CXX ASM)
 
+# Generate the firmware configuration header from the human-edited YAML source.
+find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import yaml"
+    RESULT_VARIABLE PYTHON_YAML_RESULT
+    OUTPUT_QUIET
+    ERROR_QUIET
+)
+if(NOT PYTHON_YAML_RESULT STREQUAL "0")
+    message(FATAL_ERROR
+        "PyYAML is required to generate chassis and gimbal config headers. Install it with: "
+        "python -m pip install -r tools/requirements.txt")
+endif()
+
+set(CHASSIS_CONFIG_YAML "${CMAKE_CURRENT_SOURCE_DIR}/config/chassis.yaml")
+set(CHASSIS_CONFIG_GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_chassis_config.py")
+set(CHASSIS_CONFIG_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/User/Module/Chassis/ChassisConfig.hpp")
+add_custom_command(
+    OUTPUT "${CHASSIS_CONFIG_HEADER}"
+    COMMAND ${Python3_EXECUTABLE} "${CHASSIS_CONFIG_GENERATOR}"
+            --input "${CHASSIS_CONFIG_YAML}"
+            --output "${CHASSIS_CONFIG_HEADER}"
+    DEPENDS "${CHASSIS_CONFIG_YAML}" "${CHASSIS_CONFIG_GENERATOR}"
+    COMMENT "Generating chassis configuration from YAML"
+    VERBATIM
+)
+add_custom_target(generate_chassis_config DEPENDS "${CHASSIS_CONFIG_HEADER}")
+
+set(GIMBAL_CONFIG_YAML "${CMAKE_CURRENT_SOURCE_DIR}/config/gimbal.yaml")
+set(GIMBAL_CONFIG_GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_gimbal_config.py")
+set(GIMBAL_CONFIG_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/User/Module/Gimbal/GimbalConfig.hpp")
+add_custom_command(
+    OUTPUT "${GIMBAL_CONFIG_HEADER}"
+    COMMAND ${Python3_EXECUTABLE} "${GIMBAL_CONFIG_GENERATOR}"
+            --input "${GIMBAL_CONFIG_YAML}"
+            --output "${GIMBAL_CONFIG_HEADER}"
+    DEPENDS "${GIMBAL_CONFIG_YAML}" "${GIMBAL_CONFIG_GENERATOR}"
+    COMMENT "Generating gimbal configuration from YAML"
+    VERBATIM
+)
+add_custom_target(generate_gimbal_config DEPENDS "${GIMBAL_CONFIG_HEADER}")
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 add_executable(${CMAKE_PROJECT_NAME})
@@ -40,6 +82,7 @@ list(FILTER USER_SOURCES EXCLUDE REGEX
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${USER_SOURCES})
+add_dependencies(${CMAKE_PROJECT_NAME} generate_chassis_config generate_gimbal_config)
 
 # The project uses short header names across the User tree, so expose every
 # directory that contains a C/C++ header.

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>车辆配置工具</title>
+  <style>
+    :root { color-scheme:light; --ink:#17202c; --muted:#647184; --line:#dce3eb; --canvas:#f3f6fa; --accent:#1769d2; font-family:"Segoe UI","Microsoft YaHei UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--canvas); color:var(--ink); }
+    header { padding:30px max(24px,calc((100vw - 1080px)/2)); background:#12243a; color:#fff; }
+    header h1 { margin:0 0 8px; font-size:26px; font-weight:650; }
+    header p { margin:0; color:#d2dfef; font-size:14px; line-height:1.6; }
+    main { max-width:1080px; margin:46px auto; padding:0 24px; }
+    .intro { margin-bottom:22px; }
+    .intro h2 { margin:0 0 7px; font-size:19px; }
+    .intro p { margin:0; color:var(--muted); font-size:14px; }
+    .modules { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+    .module { display:flex; min-height:220px; flex-direction:column; padding:23px; border:1px solid var(--line); border-radius:13px; background:#fff; box-shadow:0 3px 12px #18324b0a; color:inherit; text-decoration:none; transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease; }
+    a.module:hover { transform:translateY(-2px); border-color:#9db4ce; box-shadow:0 8px 22px #18324b12; }
+    .module.disabled { background:#f9fafb; color:#7b8795; }
+    .number { display:grid; width:37px; height:37px; place-items:center; border-radius:10px; background:#eaf2fc; color:var(--accent); font-size:16px; font-weight:700; }
+    .disabled .number { background:#edf0f3; color:#7b8795; }
+    .module h3 { margin:19px 0 8px; font-size:18px; }
+    .module p { margin:0; color:var(--muted); font-size:13px; line-height:1.65; }
+    .module .action { margin-top:auto; padding-top:20px; color:var(--accent); font-size:13px; font-weight:650; }
+    .disabled .action { color:#7b8795; }
+    .note { margin-top:22px; padding:13px 16px; border:1px solid #dce8f5; border-radius:9px; background:#f7fbff; color:#536174; font-size:13px; line-height:1.6; }
+    footer { margin-top:28px; color:var(--muted); font-size:12px; }
+    @media(max-width:760px) { header{padding:25px 22px} main{margin:30px auto;padding:0 16px} .modules{grid-template-columns:1fr} .module{min-height:185px} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>车辆离线配置工具</h1>
+    <p>选择需要查看或调整的配置模块。所有设置保存在本地项目文件中，页面不会连接机器人或外部网络。</p>
+  </header>
+  <main>
+    <div class="intro">
+      <h2>配置模块</h2>
+      <p>选择一个模块进入对应的配置页面。</p>
+    </div>
+    <nav class="modules" aria-label="配置模块">
+      <a class="module" href="/chassis">
+        <span class="number">01</span>
+        <h3>底盘配置</h3>
+        <p>配置底盘几何、车轮布局、PID、遥控响应、自动巡航和电机参数。</p>
+        <span class="action">进入底盘配置 →</span>
+      </a>
+      <a class="module" href="/gimbal">
+        <span class="number">02</span>
+        <h3>云台配置</h3>
+        <p>配置 Yaw 与 Hight 规划、PID、重力前馈、上下限位和电机参数。</p>
+        <span class="action">进入云台配置 →</span>
+      </a>
+      <a class="module" href="/gears">
+        <span class="number">03</span>
+        <h3>挡位说明</h3>
+        <p>用于说明遥控器挡位、开关状态及对应的车辆行为。</p>
+        <span class="action">查看 3×3 挡位表 →</span>
+      </a>
+    </nav>
+    <div class="note">保存配置后，重新构建项目并将固件烧录到设备，参数才会生效。保存前网页会检查配置格式和必要的参数范围。</div>
+    <footer>本地地址：<code>http://127.0.0.1:8765</code></footer>
+  </main>
+</body>
+</html>

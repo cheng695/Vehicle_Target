@@ -57,6 +57,16 @@ void GimbalYaw_FSM::ForceStop()
     TransitTo(GimbalYawState::STOP);
 }
 
+GimbalYawState GimbalYaw_FSM::GetCurrentState() const
+{
+    return GimbalYawFSMBase::Get_Now_State();
+}
+
+void GimbalYaw_FSM::UpdateTime()
+{
+    GimbalYawFSMBase::TIM_Update();
+}
+
 void GimbalHight_FSM::Init()
 {
     // 上电时不假设机构已经在下限位，先执行一次受控回底。
@@ -113,4 +123,9 @@ void GimbalHight_FSM::Dispatch(GimbalHightEvent event)
 void GimbalHight_FSM::ForceStop()
 {
     TransitTo(GimbalHightState::STOP);
+}
+
+GimbalHightState GimbalHight_FSM::GetCurrentState() const
+{
+    return GimbalHightFSMBase::Get_Now_State();
 }

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>云台参数离线配置</title>
+  <style>
+    :root { color-scheme: light; --ink:#17202c; --muted:#647184; --line:#dce3eb; --panel:#fff; --canvas:#f3f6fa; --accent:#1769d2; --accent-dark:#1055ad; --good:#18794e; --bad:#b42318; font-family:"Segoe UI","Microsoft YaHei UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--canvas); color:var(--ink); }
+    header { padding:28px max(24px,calc((100vw - 1180px)/2)); background:#12243a; color:white; }
+    header h1 { margin:0 0 8px; font-size:25px; font-weight:650; }
+    header p { margin:0; color:#d2dfef; font-size:14px; }
+    main { max-width:1180px; margin:24px auto 60px; padding:0 20px; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+    .toolbar-note { color:var(--muted); font-size:13px; }
+    .toolbar-note a { margin-left:10px; color:var(--accent); text-decoration:none; }
+    .toolbar-note a:hover { text-decoration:underline; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    button { border:1px solid var(--line); border-radius:8px; padding:10px 15px; background:white; color:var(--ink); font:inherit; font-size:14px; cursor:pointer; }
+    button:hover { border-color:#9db4ce; }
+    button.primary { background:var(--accent); border-color:var(--accent); color:white; font-weight:600; }
+    button.primary:hover { background:var(--accent-dark); }
+    button.save { background:#15395f; border-color:#15395f; color:white; }
+    .status { min-height:22px; margin:0 0 14px; font-size:13px; color:var(--muted); }
+    .status.error { color:var(--bad); } .status.success { color:var(--good); }
+    .layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    section.card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; box-shadow:0 2px 8px #18324b0a; }
+    section.wide { grid-column:1/-1; }
+    h2 { margin:0 0 5px; font-size:17px; }
+    .section-note { margin:0 0 17px; color:var(--muted); font-size:13px; line-height:1.5; }
+    .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px 18px; }
+    .field { min-width:0; }
+    .field-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    label { font-size:13px; font-weight:600; }
+    .unit { color:var(--muted); font-size:11px; white-space:nowrap; }
+    input[type=number] { width:100%; height:38px; border:1px solid #cbd5e1; border-radius:7px; padding:7px 10px; color:var(--ink); background:#fff; font:14px ui-monospace,Consolas,monospace; }
+    input:focus { outline:3px solid #1769d222; border-color:var(--accent); }
+    .check { display:flex; align-items:center; gap:9px; height:38px; }
+    .check input { width:18px; height:18px; accent-color:var(--accent); }
+    .help { min-height:31px; margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+    .pid-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:800px; }
+    th,td { padding:8px; border-bottom:1px solid #e8edf3; text-align:left; }
+    th { color:var(--muted); font-size:12px; font-weight:600; }
+    td:first-child { width:100px; font-size:13px; font-weight:600; }
+    td input { min-width:90px; }
+    .warning { margin-top:14px; padding:11px 13px; border-radius:8px; background:#fff7e6; color:#805400; font-size:12px; line-height:1.5; }
+    footer { margin-top:15px; color:var(--muted); font-size:12px; }
+    .back { color:#d2dfef; text-decoration:none; font-size:13px; }
+    .back:hover { text-decoration:underline; }
+    @media(max-width:760px) { .layout{grid-template-columns:1fr} section.wide{grid-column:auto} .toolbar{align-items:flex-start;flex-direction:column} .fields{grid-template-columns:1fr} header{padding:24px} }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back" href="/">← 返回配置首页</a>
+    <h1>云台参数离线配置</h1>
+    <p>在本机编辑 gimbal.yaml。更改在重新编译并烧录后生效；此页面不连接机器人。</p>
+  </header>
+  <main>
+    <div class="toolbar">
+      <div class="toolbar-note">配置来源：<code>config/gimbal.yaml</code> · 参数说明显示在每个字段下方</div>
+      <div class="actions"><button id="reference">默认参考参数</button><button id="zero-pid">归零 PID 与前馈</button><button id="reload">重新载入</button><button id="export">导出 YAML</button><button id="save" class="save">保存到项目</button></div>
+    </div>
+    <div id="status" class="status" role="status"></div>
+    <div class="layout">
+      <section class="card">
+        <h2>Yaw 速度规划</h2><p class="section-note">设置遥控模式下的角速度限幅、滚轮步长和变速曲线。</p><div id="yaw-fields" class="fields"></div>
+      </section>
+      <section class="card">
+        <h2>Hight 行程与速度规划</h2><p class="section-note">行程角度按减速器输出端累计角度填写；减速比变化会影响角度换算。</p><div id="hight-fields" class="fields"></div>
+      </section>
+      <section class="card wide">
+        <h2>电机 PID 与前馈</h2><p id="pid-help" class="section-note"></p>
+        <div class="pid-wrap"><table><thead><tr><th>轴</th><th>Kp</th><th>Ki</th><th>Kd</th><th>输出限幅</th><th>积分限幅</th><th>积分分离阈值</th></tr></thead><tbody id="pid-body"></tbody></table></div>
+        <div id="feedforward-fields" class="fields" style="margin-top:16px"></div>
+        <div class="warning">重力前馈建议值：有装甲板 850，无装甲板 500。当前 YAML 值会在上方显示，可按实际负载调整。</div>
+      </section>
+      <section class="card">
+        <h2>上下限位与堵转检测</h2><p class="section-note">上下限位有效电平可以分别配置。当前堵转检测未启用。</p><div id="limit-fields" class="fields"></div>
+      </section>
+      <section class="card">
+        <h2>升降 GM3508 配置</h2><p class="section-note">更改数量或 ID 时，需确认硬件接线和 CAN 映射一致。</p><div id="hight-motor-fields" class="fields"></div>
+      </section>
+      <section class="card wide">
+        <h2>Yaw J4310 配置</h2><p class="section-note">MIT 参数依次为位置、速度、力矩、Kp 和 Kd 的最小值与最大值。</p><div id="yaw-motor-fields" class="fields"></div>
+      </section>
+    </div>
+    <footer>保存会直接更新项目中的 YAML，并保留现有行内注释。导出只下载 YAML，不修改项目文件。</footer>
+  </main>
+  <script>
+    let config = null;
+    let referenceConfig = null;
+    const $ = (id) => document.getElementById(id);
+    const docs = () => config.documentation || {};
+    const getPath = (path) => path.split(".").reduce((value,key) => value[key],config);
+    function setPath(path,value) { const parts=path.split("."); const key=parts.pop(); parts.reduce((obj,part)=>obj[part],config)[key]=value; }
+    function esc(text) { return String(text).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+    function setStatus(message,kind="") { const n=$("status"); n.textContent=message; n.className=`status ${kind}`; }
+    function field(path,label,unit,docKey,opts={}) {
+      const value=getPath(path), id=`f-${path.replaceAll(".","-")}`, help=docs()[docKey]||"";
+      if (typeof value === "boolean") return `<div class="field"><div class="field-head"><label for="${id}">${esc(label)}</label><span class="unit">${esc(unit||"")}</span></div><div class="check"><input id="${id}" data-path="${path}" type="checkbox" ${value?"checked":""} ${opts.disabled?"disabled":""}><label for="${id}">${value?"低电平触发":"高电平触发"}</label></div><p class="help">${esc(help)}</p></div>`;
+      const min=opts.min!==undefined?`min="${opts.min}"`:"", max=opts.max!==undefined?`max="${opts.max}"`:"", step=opts.step||"any";
+      return `<div class="field"><div class="field-head"><label for="${id}">${esc(label)}</label><span class="unit">${esc(unit||"")}</span></div><input id="${id}" data-path="${path}" type="number" step="${step}" ${min} ${max} value="${esc(value)}" required ${opts.disabled?"disabled":""}><p class="help">${esc(help)}</p></div>`;
+    }
+    function arrayFields(path,values,labels,unit="",opts={}) { return values.map((_,i)=>field(`${path}.${i}`,labels[i]||`${opts.prefix||"参数"} ${i+1}`,unit,opts.docKey||"",opts)).join(""); }
+    function render() {
+      const y=config.yaw;
+      $("yaw-fields").innerHTML=
+        field("yaw.target_limit_radps","目标角速度上限","rad/s","yaw_target_limit_radps",{min:"0.000001"})+
+        field("yaw.constant_speed_step_radps","匀速滚轮步长","rad/s","yaw_constant_speed_step_radps")+
+        field("yaw.constant_speed_limit_radps","匀速速度上限","rad/s","yaw_constant_speed_limit_radps",{min:"0.000001"})+
+        field("yaw.scroll_threshold","滚轮有效阈值","输入幅值","yaw_scroll_threshold",{min:"0"})+
+        field("yaw.variable_speed.base_radps","变速基础速度","rad/s","yaw_variable_base_speed_radps")+
+        field("yaw.variable_speed.amplitude_1_radps","正弦振幅 1","rad/s","yaw_variable_amplitude_1_radps")+
+        field("yaw.variable_speed.amplitude_2_radps","正弦振幅 2","rad/s","yaw_variable_amplitude_2_radps")+
+        field("yaw.variable_speed.frequency_1_hz","正弦频率 1","Hz","yaw_variable_frequency_1_hz")+
+        field("yaw.variable_speed.frequency_2_hz","正弦频率 2","Hz","yaw_variable_frequency_2_hz")+
+        field("yaw.variable_speed.phase_1_rad","初相位 1","rad","yaw_variable_phase_1_rad")+
+        field("yaw.variable_speed.phase_2_rad","初相位 2","rad","yaw_variable_phase_2_rad");
+      const h=config.hight;
+      $("hight-fields").innerHTML=
+        field("hight.travel_deg","总行程","输出端度","hight_travel_deg",{min:"0.000001"})+
+        field("hight.up_speed_radps","上行速度","rad/s","hight_up_speed_radps")+
+        field("hight.down_speed_radps","下行速度","rad/s","hight_down_speed_radps")+
+        field("hight.home_speed_radps","回零速度","rad/s","hight_home_speed_radps")+
+        field("hight.acceleration_radps2","加速度","rad/s²","hight_acceleration_radps2")+
+        field("hight.max_speed_radps","规划速度上限","rad/s","hight_max_speed_radps",{min:"0.000001"})+
+        field("hight.slowdown_start_ratio","减速起点比例","0–1","hight_slowdown_start_ratio",{min:"0",max:"1"})+
+        field("hight.limit_speed_radps","限位搜索速度","rad/s","hight_limit_speed_radps")+
+        field("hight.min_control_dt_s","最小控制周期","s","hight_min_control_dt_s",{min:"0.000001"})+
+        field("hight.max_control_dt_s","最大控制周期","s","hight_max_control_dt_s",{min:"0.000001"});
+      $("pid-help").textContent=docs().yaw_pid+" "+docs().hight_pid;
+      const pidNames=["Kp","Ki","Kd","输出限幅","积分限幅","积分分离阈值"];
+      $("pid-body").innerHTML=[["yaw","Yaw"],["hight","Hight"]].map(([axis,label])=>`<tr><td>${label}</td>${config.pid[axis].map((v,i)=>`<td><input type="number" step="any" data-path="pid.${axis}.${i}" aria-label="${label} ${pidNames[i]}" value="${esc(v)}"></td>`).join("")}</tr>`).join("");
+      $("feedforward-fields").innerHTML=
+        field("pid.hight_current_max","升降电流输出上限","控制值","hight_current_max",{min:"0"})+
+        field("pid.hight_gravity_feedforward","重力前馈","控制值","hight_gravity_feedforward");
+      const l=config.limit_and_stall;
+      $("limit-fields").innerHTML=
+        field("limit_and_stall.hight_lower_limit_active_low","下限位有效电平","GPIO A","hight_lower_limit_active_low")+
+        field("limit_and_stall.hight_upper_limit_active_low","上限位有效电平","GPIO B","hight_upper_limit_active_low")+
+        field("limit_and_stall.stall_detection_enabled","启用堵转检测","","hight_stall_detection_enabled",{disabled:true})+
+        field("limit_and_stall.stall_min_target_radps","堵转目标速度阈值","rad/s","hight_stall_min_target_radps")+
+        field("limit_and_stall.stall_max_actual_radps","堵转实际速度阈值","rad/s","hight_stall_max_actual_radps")+
+        field("limit_and_stall.stall_min_current","堵转电流阈值","控制值","hight_stall_min_current")+
+        field("limit_and_stall.stall_duration_ms","堵转持续时间","ms","hight_stall_duration_ms",{step:"1",min:"1"});
+      const hm=config.hight_motor;
+      $("hight-motor-fields").innerHTML=
+        field("hight_motor.count","电机数量","台","hight_motor_count",{step:"1",min:"1",disabled:true})+
+        field("hight_motor.init_can_id","接收组 CAN ID","CAN","hight_motor_init_can_id",{step:"1",min:"0",max:"2047"})+
+        arrayFields("hight_motor.feedback_ids",hm.feedback_ids,hm.feedback_ids.map((_,i)=>`反馈 ID ${i+1}`),"ID",{step:"1",min:"1",max:"8",docKey:"hight_motor_feedback_ids"})+
+        field("hight_motor.send_can_id","发送组 CAN ID","CAN","hight_motor_send_can_id",{step:"1",min:"0",max:"2047"})+
+        field("hight_motor.channel","控制通道","1-based","hight_motor_channel",{step:"1",min:"1"})+
+        field("hight_motor.ring_id","离线提示 ID","ID","hight_motor_ring_id",{step:"1",min:"1",max:"8"})+
+        field("hight_motor.reduction_ratio","减速比","比例","hight_motor_parameters",{min:"0.000001"})+
+        field("hight_motor.torque_constant_nm_per_a","力矩常数","N·m/A","hight_motor_parameters")+
+        field("hight_motor.feedback_current_max","反馈电流量程","原始量程","hight_motor_parameters")+
+        field("hight_motor.motor_current_max_a","模型最大电流","A","hight_motor_parameters")+
+        field("hight_motor.encoder_resolution","编码器分辨率","计数/圈","hight_motor_parameters");
+      const ym=config.yaw_motor;
+      $("yaw-motor-fields").innerHTML=
+        field("yaw_motor.count","电机数量","台","yaw_motor_count",{step:"1",min:"1",disabled:true})+
+        field("yaw_motor.init_can_id","初始化 CAN ID","CAN","yaw_motor_init_can_id",{step:"1",min:"0",max:"2047"})+
+        arrayFields("yaw_motor.feedback_ids",ym.feedback_ids,ym.feedback_ids.map((_,i)=>`反馈 ID ${i+1}`),"ID",{step:"1",min:"1",max:"8",docKey:"yaw_motor_feedback_ids"})+
+        arrayFields("yaw_motor.send_ids",ym.send_ids,ym.send_ids.map((_,i)=>`发送 ID ${i+1}`),"CAN ID",{step:"1",min:"0",max:"2047",docKey:"yaw_motor_send_ids"})+
+        field("yaw_motor.channel","控制通道","1-based","yaw_motor_channel",{step:"1",min:"1"})+
+        arrayFields("yaw_motor.mit_parameters",ym.mit_parameters,["位置最小值","位置最大值","速度最小值","速度最大值","力矩最小值","力矩最大值","Kp 最小值","Kp 最大值","Kd 最小值","Kd 最大值"],"MIT 范围",{docKey:"yaw_motor_parameters"})+
+        field("yaw_motor.command_interval_ms","命令间隔","ms","yaw_motor_command_interval_ms",{step:"1",min:"1"})+
+        field("yaw_motor.feedback_timeout_ms","反馈超时","ms","yaw_motor_feedback_timeout_ms",{step:"1",min:"1"});
+      document.querySelectorAll("[data-path]").forEach(input=>input.addEventListener("input",()=>{
+        if(input.disabled) return;
+        const path=input.dataset.path;
+        if(input.type==="checkbox") { setPath(path,input.checked); input.nextElementSibling.textContent=input.checked?"低电平触发":"高电平触发"; }
+        else { if(input.value==="") return; const old=getPath(path), n=Number(input.value); if(!Number.isFinite(n)) return; setPath(path,Number.isInteger(old)?Math.trunc(n):n); }
+        setStatus("有尚未保存的修改");
+      }));
+    }
+    async function request(path,body) { const response=await fetch(path,{method:body?"POST":"GET",headers:body?{"Content-Type":"application/json"}:{},body:body?JSON.stringify(body):undefined}); const data=await response.json(); if(!response.ok) throw new Error(data.error||"请求失败"); return data; }
+    function validate() { const bad=document.querySelector("input:invalid"); if(!bad)return true; bad.focus(); setStatus("请检查空值或超出允许范围的参数。","error"); return false; }
+    async function load() { setStatus("正在读取项目配置…"); const data=await request("/api/gimbal/config"); referenceConfig=JSON.parse(JSON.stringify(data.config)); config=JSON.parse(JSON.stringify(referenceConfig)); render(); setStatus("已载入项目配置。","success"); }
+    $("reference").addEventListener("click",()=>{ if(!referenceConfig)return; config=JSON.parse(JSON.stringify(referenceConfig)); render(); setStatus("已恢复本次打开页面时载入的默认参考参数，保存后写入项目。","success"); });
+    $("zero-pid").addEventListener("click",()=>{ if(!config)return; ["yaw","hight"].forEach(axis=>{config.pid[axis][0]=0;config.pid[axis][1]=0;config.pid[axis][2]=0;}); config.pid.hight_gravity_feedforward=0; render(); setStatus("Yaw 与 Hight PID 的 Kp、Ki、Kd 及重力前馈已归零；其它参数未改动，保存后写入项目。","success"); });
+    $("reload").addEventListener("click",async()=>{ if(!confirm("重新载入会丢弃未保存的修改。继续吗？"))return; try{await load()}catch(e){setStatus(e.message,"error")} });
+    $("export").addEventListener("click",async()=>{ if(!validate())return; try { const response=await fetch("/api/gimbal/export",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({config})}); if(!response.ok){const e=await response.json();throw new Error(e.error||"导出失败")} const blob=await response.blob(),url=URL.createObjectURL(blob),link=document.createElement("a"); link.href=url;link.download="gimbal.yaml";link.click();URL.revokeObjectURL(url);setStatus("YAML 已导出，项目文件未修改。","success"); }catch(e){setStatus(e.message,"error")} });
+    $("save").addEventListener("click",async()=>{ if(!validate())return; if(!confirm("确认将当前参数写入项目的 config/gimbal.yaml？现有注释会保留。"))return; try{const data=await request("/api/gimbal/save",{config});setStatus(data.message,"success")}catch(e){setStatus(e.message,"error")} });
+    load().catch(e=>setStatus(e.message,"error"));
+  </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GimbalConfig.hpp"
+
 #include <cmath>
 #include <cstdint>
 
@@ -24,9 +26,9 @@ public:
 
         // 使用最终电流指令，限位已经切断输出时不累计堵转时间。
         const bool suspected = enabled &&
-            std::fabs(target_radps) >= MIN_TARGET_RADPS &&
-            std::fabs(actual_radps) < MAX_STALLED_RADPS &&
-            std::fabs(current_command) >= MIN_CURRENT_COMMAND;
+            std::fabs(target_radps) >= GimbalConfig::HIGHT_STALL_MIN_TARGET_RADPS &&
+            std::fabs(actual_radps) < GimbalConfig::HIGHT_STALL_MAX_ACTUAL_RADPS &&
+            std::fabs(current_command) >= GimbalConfig::HIGHT_STALL_MIN_CURRENT;
         if (!suspected)
         {
             timing_ = false;
@@ -43,19 +45,22 @@ public:
         }
 
         // 无符号差值允许毫秒计数正常回绕。
-        fault_ = static_cast<uint32_t>(now_ms - start_ms_) >= STALL_DURATION_MS;
+        fault_ = static_cast<uint32_t>(now_ms - start_ms_) >=
+                 GimbalConfig::HIGHT_STALL_DURATION_MS;
         return fault_;
     }
 
 private:
-    // 初始阈值需结合负载、正常启动时间和速度噪声实测调整。
-    static constexpr float MIN_TARGET_RADPS = 0.5f;       // 判定堵转所需的最小目标速度，单位：rad/s
-    static constexpr float MAX_STALLED_RADPS = 0.1f;     // 判定为未运动的最大实际速度，单位：rad/s
-    static constexpr float MIN_CURRENT_COMMAND = 500.0f; // 判定堵转所需的最小电流指令绝对值
-    static constexpr uint32_t STALL_DURATION_MS = 500;   // 堵转条件必须持续的时间，单位：ms
-
+    // ==================== 运行状态：由检测逻辑维护，不是调参项 ====================
+    // 当前是否正在累计堵转候选时间。
     bool timing_ = false;
+
+    // 堵转故障锁存标志；故障置位后由 Reset() 清除。
     bool fault_ = false;
+
+    // 当前计时方向：1 表示正向，-1 表示反向，0 表示尚未开始计时。
     int direction_ = 0;
+
+    // 本轮堵转计时的起始系统时刻，单位：毫秒。
     uint32_t start_ms_ = 0;
 };
