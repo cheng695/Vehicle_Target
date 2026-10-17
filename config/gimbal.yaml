@@ -2,44 +2,44 @@
 # 或重新构建项目由 CMake 自动生成。改动参数后需重新编译并烧录固件。
 
 yaw:
-  target_limit_radps: 10.0         # Yaw 目标角速度绝对值上限，单位：rad/s。
+  target_limit_radps: 10         # Yaw 目标角速度绝对值上限，单位：rad/s。
   constant_speed_step_radps: 2.6   # 匀速模式每次滚轮拨动的速度步长，单位：rad/s。
-  constant_speed_limit_radps: 5.0  # 匀速模式目标速度上限，单位：rad/s。
+  constant_speed_limit_radps: 8  # 匀速模式目标速度上限，单位：rad/s。
   scroll_threshold: 0.7            # 滚轮有效拨动阈值；输入绝对值须大于此值。
   variable_speed:
     base_radps: 4.9                # 变速曲线基础速度，单位：rad/s。
     amplitude_1_radps: 1.5         # 变速曲线第一项正弦振幅，单位：rad/s。
     amplitude_2_radps: 0.6         # 变速曲线第二项正弦振幅，单位：rad/s。
     frequency_1_hz: 1.5            # 变速曲线第一项频率，单位：Hz。
-    frequency_2_hz: 4.0            # 变速曲线第二项频率，单位：Hz。
+    frequency_2_hz: 4            # 变速曲线第二项频率，单位：Hz。
     phase_1_rad: -1.57079632679    # 变速曲线第一项初相位，单位：rad。
     phase_2_rad: -1.57079632679    # 变速曲线第二项初相位，单位：rad。
 
 hight:
-  travel_deg: 670.0                # 升降总行程；底部为零点、向上为正，单位：减速器输出端累计角度（度）。
-  up_speed_radps: 40.0             # 上行目标角速度，单位：rad/s。
-  down_speed_radps: 40.0           # 下行目标角速度绝对值，单位：rad/s。
-  home_speed_radps: -3.0           # 返回下限位速度，单位：rad/s，方向为负。
-  acceleration_radps2: 5000.0      # 速度斜坡加速度，单位：rad/s^2。
-  max_speed_radps: 40.0            # 规划速度绝对值上限，单位：rad/s。
+  travel_deg: 670                # 升降总行程；底部为零点、向上为正，单位：减速器输出端累计角度（度）。
+  up_speed_radps: 40             # 上行目标角速度，单位：rad/s。
+  down_speed_radps: 40           # 下行目标角速度绝对值，单位：rad/s。
+  home_speed_radps: -3           # 返回下限位速度，单位：rad/s，方向为负。
+  acceleration_radps2: 5000      # 速度斜坡加速度，单位：rad/s^2。
+  max_speed_radps: 40            # 规划速度绝对值上限，单位：rad/s。
   slowdown_start_ratio: 0.7        # 到达行程此比例后开始减速，范围通常为 [0, 1]。
-  limit_speed_radps: 3.0           # 减速区寻找限位开关的低速，单位：rad/s。
+  limit_speed_radps: 3           # 减速区寻找限位开关的低速，单位：rad/s。
   min_control_dt_s: 0.0005         # 升降斜坡计算使用的最小控制周期，单位：秒。
   max_control_dt_s: 0.02           # 升降斜坡计算使用的最大控制周期，单位：秒。
 
 pid:
-  yaw: [0.0, 0.0, 1.6, 0.0, 0.0, 0.0] # Yaw PID：Kp、Ki、Kd、输出限幅、积分限幅、积分分离阈值；当前只发送 Kp/Kd。
-  hight: [3000.0, 0.0, 0.0, 16384.0, 2500.0, 100.0] # 升降速度 PID：Kp、Ki、Kd、输出限幅、积分限幅、积分分离阈值。
+  yaw: [0, 0, 1.6, 0, 0, 0] # Yaw PID：Kp、Ki、Kd、输出限幅、积分限幅、积分分离阈值；当前只发送 Kp/Kd。
+  hight: [3000, 0, 0, 16384, 2500, 100] # 升降速度 PID：Kp、Ki、Kd、输出限幅、积分限幅、积分分离阈值。
   hight_current_max: 16384.0      # 升降最终电流命令绝对值上限。
-  hight_gravity_feedforward: 850.0 # 升降运动时叠加的重力前馈电流指令；有装甲板用 850，无装甲板用 500。
+  hight_gravity_feedforward: 1100.0 # 升降运动时叠加的重力前馈电流指令；有装甲板用 1100，无装甲板用 500。
 
 limit_and_stall:
-  hight_lower_limit_active_low: true  # 下限位（GPIO A）：true 表示 GPIO_PIN_RESET 触发；false 表示 GPIO_PIN_SET 触发。
-  hight_upper_limit_active_low: true  # 上限位（GPIO B）：true 表示 GPIO_PIN_RESET 触发；false 表示 GPIO_PIN_SET 触发。
+  hight_lower_limit_active_low: true  # 下限位接 GPIO B：当前低电平（GPIO_PIN_RESET）触发。
+  hight_upper_limit_active_low: true  # 上限位接 GPIO A：当前低电平（GPIO_PIN_RESET）触发。
   stall_detection_enabled: false    # 当前堵转检测 Update 调用处于注释状态；false 表示堵转检测未启用。
   stall_min_target_radps: 0.5       # 堵转检测启用所需的最小目标角速度，单位：rad/s。
   stall_max_actual_radps: 0.1       # 判定未运动的实际角速度上限，单位：rad/s。
-  stall_min_current: 500.0          # 堵转检测启用所需的最小电流命令绝对值。
+  stall_min_current: 500          # 堵转检测启用所需的最小电流命令绝对值。
   stall_duration_ms: 500            # 堵转条件连续成立时间，单位：ms。
 
 hight_motor:
@@ -51,17 +51,17 @@ hight_motor:
   ring_id: 5                         # 电机离线蜂鸣提示使用的反馈 ID。
   reduction_ratio: 15.7647058823529  # GM3508 减速比；影响速度和减速器输出端角度换算，勿随意修改。
   torque_constant_nm_per_a: 0.3     # 电机力矩常数，单位：N·m/A。
-  feedback_current_max: 16384.0     # 电机反馈电流原始量程参数。
-  motor_current_max_a: 20.0         # GM3508 电机模型最大电流参数，单位：A。
-  encoder_resolution: 8192.0        # 编码器分辨率，单位：计数/圈。
+  feedback_current_max: 16384     # 电机反馈电流原始量程参数。
+  motor_current_max_a: 20         # GM3508 电机模型最大电流参数，单位：A。
+  encoder_resolution: 8192        # 编码器分辨率，单位：计数/圈。
 
 yaw_motor:
   count: 1                           # Yaw J4310 电机数量。
-  init_can_id: 0x00                  # J4310 初始化 CAN ID。
+  init_can_id: 0x0                  # J4310 初始化 CAN ID。
   feedback_ids: [1]                  # J4310 反馈 ID。
-  send_ids: [0x01]                   # J4310 控制 CAN ID。
+  send_ids: [0x1]                   # J4310 控制 CAN ID。
   channel: 1                         # J4310 单电机数组内的 1-based 通道号。
-  mit_parameters: [-12.56, 12.56, -30.0, 30.0, -10.0, 10.0, 0.0, 500.0, 0.0, 5.0] # 位置、速度、力矩、Kp、Kd 的最小值和最大值。
+  mit_parameters: [-12.56, 12.56, -30, 30, -10, 10, 0, 500, 0, 5] # 位置、速度、力矩、Kp、Kd 的最小值和最大值。
   command_interval_ms: 10            # 使能、关闭及清错命令间隔，单位：ms。
   feedback_timeout_ms: 100           # 等待使能反馈及运行反馈超时，单位：ms。
 
@@ -92,8 +92,8 @@ documentation:
   hight_gravity_feedforward: "升降运动时叠加的重力前馈电流指令；有装甲板用 850，无装甲板用 500。"
   yaw_pid: "Yaw PID 参数：Kp、Ki、Kd、输出限幅、积分限幅和积分分离阈值；当前流程使用 Kp/Kd 作为 MIT 指令参数。"
   hight_pid: "升降速度 PID 参数：Kp、Ki、Kd、输出限幅、积分限幅和积分分离阈值。"
-  hight_lower_limit_active_low: "下限位（GPIO A）有效电平；true 表示 GPIO_PIN_RESET 触发，false 表示 GPIO_PIN_SET 触发。"
-  hight_upper_limit_active_low: "上限位（GPIO B）有效电平；true 表示 GPIO_PIN_RESET 触发，false 表示 GPIO_PIN_SET 触发。"
+  hight_lower_limit_active_low: "下限位接 GPIO B；当前为低电平（GPIO_PIN_RESET）触发。true 表示低电平触发，false 表示高电平触发。"
+  hight_upper_limit_active_low: "上限位接 GPIO A；当前为低电平（GPIO_PIN_RESET）触发。true 表示低电平触发，false 表示高电平触发。"
   hight_stall_detection_enabled: "堵转检测开关；当前检测器 Update 调用处于注释状态，尚未启用。"
   hight_stall_min_target_radps: "堵转检测启用所需的最小目标角速度，单位：rad/s。"
   hight_stall_max_actual_radps: "判定升降机构未运动的实际角速度上限，单位：rad/s。"

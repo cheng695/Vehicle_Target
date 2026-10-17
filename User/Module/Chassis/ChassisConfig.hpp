@@ -25,7 +25,7 @@ inline constexpr WheelPid WHEEL_PID[WHEEL_COUNT] = {
     {700.0f, 0.5f, 0.0f, 16384.0f, 2500.0f, 100.0f},
     {700.0f, 0.5f, 0.0f, 16384.0f, 2500.0f, 100.0f},
     {700.0f, 0.5f, 0.0f, 16384.0f, 2500.0f, 100.0f},
-    {700.0f, 0.5f, 0.0f, 16384.0f, 2500.0f, 150.0f}
+    {700.0f, 0.5f, 0.0f, 16384.0f, 2500.0f, 100.0f}
 };
 
 inline constexpr float TRANSLATION_RAMP_INCREASE = 0.015f; ///< X/Y 平移目标每个控制周期允许的最大增加量。

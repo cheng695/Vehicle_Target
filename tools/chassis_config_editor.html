@@ -237,7 +237,7 @@
       if (!referenceConfig) return;
       config = JSON.parse(JSON.stringify(referenceConfig));
       render();
-      setStatus("已恢复本次打开页面时载入的默认参考参数，保存后写入项目。", "success");
+      setStatus("已恢复最近一次从项目配置载入或保存的参考参数。", "success");
     });
     $("zero-pid").addEventListener("click", () => {
       if (!config) return;
@@ -276,6 +276,7 @@
       if (!confirm("确认将当前参数写入项目的 config/chassis.yaml？现有注释会保留。")) return;
       try {
         const data = await requestJson("/api/save", { config });
+        referenceConfig = JSON.parse(JSON.stringify(config));
         setStatus(data.message, "success");
       } catch (error) { setStatus(error.message, "error"); }
     });

@@ -5,7 +5,7 @@
 #include "buzzer_manager.hpp"
 #include "main.h"
 
-// Hight 上下限位调试值：1 表示引脚为高电平，0 表示引脚为低电平。
+// Hight 上下限位 GPIO 电平调试值：A 为上限位、B 为下限位；当前低电平触发。
 volatile uint8_t debug_hight_limit_a_level = 0;
 volatile uint8_t debug_hight_limit_b_level = 0;
 

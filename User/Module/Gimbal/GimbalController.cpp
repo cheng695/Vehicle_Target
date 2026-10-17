@@ -77,10 +77,10 @@ void GimbalController::StopHight(GimbalTarget &target, GimbalOutput &output)
 void GimbalController::UpdateHight(GimbalTarget &target, GimbalOutput &output, float time_s)
 {
     const bool upper_limit_active =
-        HAL_GPIO_ReadPin(B_GPIO_Port, B_Pin) ==
+        HAL_GPIO_ReadPin(A_GPIO_Port, A_Pin) ==
         (GimbalConfig::HIGHT_UPPER_LIMIT_ACTIVE_LOW ? GPIO_PIN_RESET : GPIO_PIN_SET);
     const bool lower_limit_active =
-        HAL_GPIO_ReadPin(A_GPIO_Port, A_Pin) ==
+        HAL_GPIO_ReadPin(B_GPIO_Port, B_Pin) ==
         (GimbalConfig::HIGHT_LOWER_LIMIT_ACTIVE_LOW ? GPIO_PIN_RESET : GPIO_PIN_SET);
 
     const float angle_deg = Motor3508_5.getAddAngleDeg(GimbalConfig::HIGHT_MOTOR_CHANNEL);
@@ -174,10 +174,10 @@ void GimbalController::ControlLoop(bool is_online, const OperatorInput &input, f
     yaw_fsm_.Dispatch(event_detector_.ResolveYawEvent(input));
 
     const bool upper_limit_active =
-        HAL_GPIO_ReadPin(B_GPIO_Port, B_Pin) ==
+        HAL_GPIO_ReadPin(A_GPIO_Port, A_Pin) ==
         (GimbalConfig::HIGHT_UPPER_LIMIT_ACTIVE_LOW ? GPIO_PIN_RESET : GPIO_PIN_SET);
     const bool lower_limit_active =
-        HAL_GPIO_ReadPin(A_GPIO_Port, A_Pin) ==
+        HAL_GPIO_ReadPin(B_GPIO_Port, B_Pin) ==
         (GimbalConfig::HIGHT_LOWER_LIMIT_ACTIVE_LOW ? GPIO_PIN_RESET : GPIO_PIN_SET);
     
     const bool hight_enabled = is_online &&

@@ -19,7 +19,7 @@ struct DJIMotorParameters { double reduction_ratio; double torque_constant_nm_pe
 // ===== Yaw axis speed planning =====
 inline constexpr float YAW_TARGET_LIMIT_RADPS = 10.0f; ///< Yaw 目标角速度绝对值上限，单位：rad/s。
 inline constexpr float YAW_CONSTANT_SPEED_STEP_RADPS = 2.6f; ///< 匀速模式每次滚轮拨动的速度步长，单位：rad/s。
-inline constexpr float YAW_CONSTANT_SPEED_LIMIT_RADPS = 5.0f; ///< 匀速模式目标速度上限，单位：rad/s。
+inline constexpr float YAW_CONSTANT_SPEED_LIMIT_RADPS = 8.0f; ///< 匀速模式目标速度上限，单位：rad/s。
 inline constexpr float YAW_SCROLL_THRESHOLD = 0.7f; ///< 滚轮有效拨动阈值；输入绝对值须大于此值。
 inline constexpr float YAW_VARIABLE_BASE_SPEED_RADPS = 4.9f; ///< 变速曲线基础速度，单位：rad/s。
 inline constexpr float YAW_VARIABLE_AMPLITUDE_1_RADPS = 1.5f; ///< 变速曲线第一项正弦振幅，单位：rad/s。
@@ -43,13 +43,13 @@ inline constexpr float HIGHT_MAX_CONTROL_DT_S = 0.02f; ///< 升降斜坡计算�
 
 // ===== PID and current limits =====
 inline constexpr float HIGHT_CURRENT_MAX = 16384.0f; ///< 升降最终电流命令绝对值上限。
-inline constexpr float HIGHT_GRAVITY_FEEDFORWARD = 850.0f; ///< 升降运动时叠加的重力前馈电流指令；有装甲板用 850，无装甲板用 500。
+inline constexpr float HIGHT_GRAVITY_FEEDFORWARD = 1100.0f; ///< 升降运动时叠加的重力前馈电流指令；有装甲板用 850，无装甲板用 500。
 inline constexpr PIDParameters YAW_PID = {0.0f, 0.0f, 1.6f, 0.0f, 0.0f, 0.0f}; ///< Yaw PID 参数：Kp、Ki、Kd、输出限幅、积分限幅和积分分离阈值；当前流程使用 Kp/Kd 作为 MIT 指令参数。
 inline constexpr PIDParameters HIGHT_PID = {3000.0f, 0.0f, 0.0f, 16384.0f, 2500.0f, 100.0f}; ///< 升降速度 PID 参数：Kp、Ki、Kd、输出限幅、积分限幅和积分分离阈值。
 
 // ===== Limit switches and stall detection =====
-inline constexpr bool HIGHT_LOWER_LIMIT_ACTIVE_LOW = true; ///< 下限位（GPIO A）有效电平；true 表示 GPIO_PIN_RESET 触发，false 表示 GPIO_PIN_SET 触发。
-inline constexpr bool HIGHT_UPPER_LIMIT_ACTIVE_LOW = true; ///< 上限位（GPIO B）有效电平；true 表示 GPIO_PIN_RESET 触发，false 表示 GPIO_PIN_SET 触发。
+inline constexpr bool HIGHT_LOWER_LIMIT_ACTIVE_LOW = true; ///< 下限位接 GPIO B；当前为低电平（GPIO_PIN_RESET）触发。true 表示低电平触发，false 表示高电平触发。
+inline constexpr bool HIGHT_UPPER_LIMIT_ACTIVE_LOW = true; ///< 上限位接 GPIO A；当前为低电平（GPIO_PIN_RESET）触发。true 表示低电平触发，false 表示高电平触发。
 inline constexpr bool HIGHT_STALL_DETECTION_ENABLED = false; ///< 堵转检测开关；当前检测器 Update 调用处于注释状态，尚未启用。
 inline constexpr float HIGHT_STALL_MIN_TARGET_RADPS = 0.5f; ///< 堵转检测启用所需的最小目标角速度，单位：rad/s。
 inline constexpr float HIGHT_STALL_MAX_ACTUAL_RADPS = 0.1f; ///< 判定升降机构未运动的实际角速度上限，单位：rad/s。
